@@ -12,6 +12,30 @@ class Language(Enum):
 
 language = Language.GERMAN
 
+language_dict = {
+    Language.ENGLISH: {
+        "out_of_range": "is out of range",
+        "unknown_vital": "[ERROR] Unknown vital",
+    },
+    Language.GERMAN: {
+        "out_of_range": "liegt außerhalb des zulässigen Bereichs",
+        "unknown_vital": "[FEHLER] Unbekannte Vital",
+    }
+}
+
+
+def get_localized_message(message_key: str) -> str:
+    """
+    Get localized message based on current language setting.
+    
+    Args:
+        message_key: Key for the message to retrieve
+        
+    Returns:
+        Localized message string
+    """
+    return language_dict.get(language, language_dict[Language.ENGLISH]).get(message_key, message_key)
+
 
 def __display_vital_alert(val, msg):
   print(msg)
@@ -66,17 +90,13 @@ class Vital:
         return self.min_value <= value <= self.max_value
 
     def check(self, value: float):
-        global language
         if self.is_normal(value):
             print(f"[OK] {self.name}: {value}")
         else:
             # Import at module level to avoid name mangling issues
-            import sys
             module = sys.modules[__name__]
             display_alert = getattr(module, '__display_vital_alert')
-            msg = "is out of range"
-            if language == Language.GERMAN:
-               msg = "liegt außerhalb des zulässigen Bereichs"
+            msg = get_localized_message("out_of_range")
             display_alert(1, f'{self.name} {msg}!')
 
 
@@ -95,9 +115,7 @@ def check_vitals(user_values: dict):
     for vital_name, value in user_values.items():
         vital = VITALS.get(vital_name)
         if not vital:
-            msg = "[ERROR] Unknown vital"
-            if language == Language.GERMAN:
-                msg = "[FEHLER] Unbekannte Vital"
+            msg = get_localized_message("unknown_vital")
             print(f"{msg}: {vital_name}")
             continue
         vital.check(value)
